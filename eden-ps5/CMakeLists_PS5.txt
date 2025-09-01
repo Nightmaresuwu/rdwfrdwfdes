@@ -1,0 +1,74 @@
+# SPDX-FileCopyrightText: Copyright 2025 Eden Emulator Project - PS5 Port
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+cmake_minimum_required(VERSION 3.22)
+
+project(eden-ps5)
+
+# PS5 Platform Detection
+if (CMAKE_SYSTEM_NAME STREQUAL "PS5" OR DEFINED PS5_BUILD)
+    set(PLATFORM_PS5 ON)
+    message(STATUS "Building for PlayStation 5")
+else()
+    message(FATAL_ERROR "This build configuration is for PS5 only")
+endif()
+
+# PS5-specific compiler and toolchain settings
+if (PLATFORM_PS5)
+    # Assume we're using Orbis SDK or compatible toolchain
+    set(CMAKE_C_COMPILER "orbis-clang" CACHE FILEPATH "PS5 C Compiler")
+    set(CMAKE_CXX_COMPILER "orbis-clang++" CACHE FILEPATH "PS5 C++ Compiler")
+    
+    # PS5-specific flags
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPS5_PLATFORM=1")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPS5_PLATFORM=1 -std=c++20")
+    
+    # PS5-specific definitions
+    add_definitions(-DPS5_BUILD=1)
+    add_definitions(-DENABLE_PS5_HOMEBREW=1)
+    add_definitions(-DDISABLE_QT=1)
+    add_definitions(-DDISABLE_SDL=1)
+    add_definitions(-DUSE_PS5_GRAPHICS=1)
+    add_definitions(-DUSE_PS5_AUDIO=1)
+    add_definitions(-DUSE_PS5_INPUT=1)
+endif()
+
+# Disable Qt and SDL for PS5
+set(ENABLE_QT OFF CACHE BOOL "Disable Qt for PS5" FORCE)
+set(ENABLE_SDL2 OFF CACHE BOOL "Disable SDL2 for PS5" FORCE)
+set(ENABLE_OPENGL OFF CACHE BOOL "Disable OpenGL for PS5" FORCE)
+set(YUZU_USE_EXTERNAL_VULKAN_HEADERS OFF CACHE BOOL "Disable Vulkan for PS5" FORCE)
+
+# Enable PS5-specific options
+option(ENABLE_PS5_GNM "Enable PS5 GNM/GNMX Graphics" ON)
+option(ENABLE_PS5_AUDIO "Enable PS5 Native Audio System" ON)
+option(ENABLE_PS5_INPUT "Enable PS5 Controller Input" ON)
+option(ENABLE_ETAHEN_PLUGIN "Enable etaHEN Plugin System" ON)
+option(BUILD_PS5_PKG "Build as PS5 PKG file" ON)
+
+# PS5 Architecture Detection
+set(ARCHITECTURE "x86_64")
+set(ARCHITECTURE_x86_64 1)
+add_definitions(-DARCHITECTURE_x86_64=1)
+
+# Configure C++ standard
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Output binaries to ps5-bin/
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/ps5-bin)
+
+# PS5-specific library paths (when using Orbis SDK)
+if (PLATFORM_PS5)
+    set(PS5_SDK_ROOT "/opt/orbis-sdk" CACHE PATH "PS5 SDK Root Directory")
+    
+    if (EXISTS ${PS5_SDK_ROOT})
+        include_directories(${PS5_SDK_ROOT}/include)
+        link_directories(${PS5_SDK_ROOT}/lib)
+    endif()
+endif()
+
+# Include PS5 port sources
+add_subdirectory(src_ps5)
+
+message(STATUS "Eden PS5 Port Configuration Complete")
